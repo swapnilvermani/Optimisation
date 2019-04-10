@@ -1,0 +1,1360 @@
+GAMS 25.1.1  r66732 Released May 19, 2018 DEX-DEG x86 64bit/Mac OS X - 10/07/18 22:21:45 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+   1   
+   2  Set i years /0,1,2,3,4,5,6/ ;
+   3  Set j future /4,5,6/;
+   4   
+   5  Parameter Required_Skilled(i)   requirement of skilled labors at i year
+   6  / 0     1000
+   7    1      1000
+   8    2      1500
+   9    3      2000
+  10   / ;
+  11   
+  12  Parameter Required_Semiskilled(i)   requirement of semiskilled labors at i year;
+  13  */
+  14  *  0      1500
+  15  *1      1400
+  16  *  2      2000
+  17  * 3      2500
+  18  */ ;
+  19   
+  20  Parameter Required_Unskilled(i)   requirement of semiskilled labors at i year
+  21  / 0      2000
+  22    1      1000
+  23    2      500
+  24    3      0
+  25    4      0
+  26    5      0
+  27    6      0/ ;
+  28   
+  29  *Parameter future_Required_Skilled(j) ,future_Required_Semiskilled(j);
+  30  *future_Required_Skilled ('4')   =      Required_Skilled(j-1)*1.02;
+  31  *future_Required_Semiskilled('4')  =      Required_Semiskilled(j-1)*1.02;
+  32  Required_Semiskilled ('0')=1500;
+  33  Required_Semiskilled ('1')=1400;
+  34  Required_Semiskilled ('2')=2000;
+  35  Required_Semiskilled ('3')=2500;
+  36  Required_Semiskilled ('4')=2500*1.02;
+  37  Required_Semiskilled ('5')=Required_Semiskilled ('4')*1.02;
+  38  Required_Semiskilled ('6')=Required_Semiskilled ('5')*1.02;
+  39   
+  40  Required_Skilled ('0')=1000;
+  41  Required_Skilled ('1')=1000;
+  42  Required_Skilled ('2')=1500;
+  43  Required_Skilled ('3')=2000;
+  44  Required_Skilled ('4')=2000*1.02;
+  45  Required_Skilled ('5')=Required_Skilled ('4')*1.02;
+  46  Required_Skilled ('6')=Required_Skilled ('5')*1.02;
+  47  *LOOP(i$SAMEAS(i,"4"),
+  48  *if(i >= 4,
+  49  *Required_Semiskilled(i) $ (i>=4)  =  Required_Semiskilled(i-1)*1.02;
+  50  *);
+  51  *);
+  52  *Required_Semiskilled(j)  =      Required_Semiskilled(j-1)*1.02;
+  53   
+  54   
+  55  Positive variables
+  56                 Skilled_workers(i),Semiskilled_workers(i),Unskilled_workers(i),Recruited_Skilled_workers(i),Recruited_Semiskilled_workers(i),Recruited_Unskilled_workers(i),Retrained_Semiskilled_workers(i),Retrained_Unskilled_workers(i),Dg_Semiskilled
+      _from_Skilled(i),Dg_Unskilled_from_Skilled(i),Dg_Unskilled_from_Semiskilled(i),Redundant_Skilled(i),Redundant_Semiskilled(i),Redundant_Unskilled(i),Overmanned_Skilled(i),Overmanned_Semiskilled(i),Overmanned_Unskilled(i),Short_term_Skilled(i),Short_t
+      erm_Semiskilled(i),Short_term_Unskilled(i) number;
+  57   
+  58  Variable
+  59           z       No.of reduntant labors;
+  60   
+  61  Equations
+  62           obj             objective function
+  63           recruitementskilled(i),
+  64           recruitementsemiskilled(i),
+  65           recruitementunskilled(i),
+  66           retrainedfromunskilled(i),
+  67           retrainedfromsemiskilled(i),
+  68           overmanned(i),
+  69           shortermunskilled(i),
+  70           shortermsemiskilled(i),
+  71           shortermskilled(i)
+  72           skilled(i),
+  73           requiredskilled(i),
+  74           semiskllied(i),
+  75           requiredsemiskilled(i),
+  76           unskilled(i),
+  77           requiredunskilled(i);
+  78   
+  79  obj..    z =E= sum(i,400*Retrained_Semiskilled_workers(i) + 500* Retrained_Unskilled_workers(i) + 200* Redundant_Unskilled(i) + 500* (Redundant_Skilled(i) + Redundant_Semiskilled(i)) + 500* Overmanned_Skilled(i) + 800* Overmanned_Semiskilled(i) + 50
+      0* Overmanned_Unskilled(i) + 500* Short_term_Unskilled(i) + 400*Short_term_Semiskilled(i) + 400* Short_term_Skilled(i)) ;
+  80  *obj..    z =E= sum(i,Redundant_Skilled(i) + Redundant_Semiskilled(i) + Redundant_Unskilled(i)) ;
+  81  skilled(i)..    Skilled_workers(i) =E= 0.95*Skilled_workers(i-1) + 0.9*Recruited_Skilled_workers(i)+ 0.95*Retrained_Semiskilled_workers(i)-Dg_Semiskilled_from_Skilled(i)-Dg_Unskilled_from_Skilled(i)-Redundant_Skilled(i);
+  82  requiredskilled(i)..  Skilled_workers(i) - Overmanned_Skilled(i) +0.5*Short_term_Skilled(i) =E=Required_Skilled(i);
+  83  semiskllied(i)..   Semiskilled_workers(i) =E= 0.95*Semiskilled_workers(i-1) + 0.80*Recruited_Semiskilled_workers(i)+ 0.95*Retrained_Unskilled_workers(i) -Dg_Unskilled_from_Semiskilled(i) + 0.5*Dg_Semiskilled_from_Skilled(i) -Redundant_Semiskilled(i)
+      ;
+  84  requiredsemiskilled(i).. Semiskilled_workers(i) - Overmanned_Semiskilled(i) +0.5*Short_term_Semiskilled(i) =E=Required_Semiskilled(i);
+  85  unskilled(i)..   Unskilled_workers(i) =E= 0.9*Unskilled_workers(i-1) + 0.75*Recruited_Unskilled_workers(i) + 0.5*Dg_Unskilled_from_Skilled(i) + 0.5*Dg_Unskilled_from_Semiskilled(i) - Redundant_Unskilled(i);
+  86  requiredunskilled(i)..Unskilled_workers(i) - Overmanned_Unskilled(i) +0.5*Short_term_Unskilled(i) =E=Required_Unskilled(i) ;
+  87  recruitementskilled(i)..   Recruited_Skilled_workers(i) =L= 500;
+  88  recruitementsemiskilled(i)..  Recruited_Semiskilled_workers(i) =L= 800;
+  89  recruitementunskilled(i)..  Recruited_Unskilled_workers(i) =L= 500;
+  90  retrainedfromunskilled(i)..  Retrained_Unskilled_workers(i) =L= 200;
+  91  retrainedfromsemiskilled(i)..  Retrained_Semiskilled_workers(i) =L= 0.25*Skilled_workers(i);
+  92  overmanned(i).. Overmanned_Skilled(i) + Overmanned_Semiskilled(i) + Overmanned_Unskilled(i) =L= 150;
+  93  shortermunskilled(i)..  Short_term_Unskilled(i) =L=50;
+  94  shortermsemiskilled(i)..  Short_term_Semiskilled(i) =L= 50;
+  95  shortermskilled(i)..  Short_term_Skilled(i) =L=50;
+  96   
+  97  Model ProjectQ1 /all/ ;
+  98   
+  99  Solve ProjectQ1 using LP minimizing z ;
+ 100   
+ 101  Display z.L,Skilled_workers.L,Semiskilled_workers.L,Unskilled_workers.L,Recruited_Skilled_workers.L,Recruited_Semiskilled_workers.L,Recruited_Unskilled_workers.L,Retrained_Semiskilled_workers.L,Retrained_Unskilled_workers.L,Dg_Semiskilled_from_Skill
+      ed.L,Dg_Unskilled_from_Skilled.L,Dg_Unskilled_from_Semiskilled.L,Redundant_Skilled.L,Redundant_Semiskilled.L,Redundant_Unskilled.L,Overmanned_Skilled.L,Overmanned_Semiskilled.L,Overmanned_Unskilled.L,Short_term_Skilled.L,Short_term_Semiskilled.L,Sho
+      rt_term_Unskilled.L;
+ 102   
+ 103   
+ 104   
+ 105   
+ 106   
+ 107   
+ 108   
+ 109   
+ 110   
+ 111   
+ 112   
+ 113   
+ 114   
+ 115   
+ 116   
+ 117   
+ 118   
+ 119   
+
+
+COMPILATION TIME     =        0.001 SECONDS      3 MB  25.1.1 r66732 DEX-DEG
+GAMS 25.1.1  r66732 Released May 19, 2018 DEX-DEG x86 64bit/Mac OS X - 10/07/18 22:21:45 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Equation Listing    SOLVE ProjectQ1 Using LP From line 99
+
+
+---- obj  =E=  objective function
+
+obj..  - 400*Retrained_Semiskilled_workers(0) - 400*Retrained_Semiskilled_workers(1) - 400*Retrained_Semiskilled_workers(2) - 400*Retrained_Semiskilled_workers(3) - 400*Retrained_Semiskilled_workers(4) - 400*Retrained_Semiskilled_workers(5)
+     
+      - 400*Retrained_Semiskilled_workers(6) - 500*Retrained_Unskilled_workers(0) - 500*Retrained_Unskilled_workers(1) - 500*Retrained_Unskilled_workers(2) - 500*Retrained_Unskilled_workers(3) - 500*Retrained_Unskilled_workers(4)
+     
+      - 500*Retrained_Unskilled_workers(5) - 500*Retrained_Unskilled_workers(6) - 500*Redundant_Skilled(0) - 500*Redundant_Skilled(1) - 500*Redundant_Skilled(2) - 500*Redundant_Skilled(3) - 500*Redundant_Skilled(4) - 500*Redundant_Skilled(5)
+     
+      - 500*Redundant_Skilled(6) - 500*Redundant_Semiskilled(0) - 500*Redundant_Semiskilled(1) - 500*Redundant_Semiskilled(2) - 500*Redundant_Semiskilled(3) - 500*Redundant_Semiskilled(4) - 500*Redundant_Semiskilled(5) - 500*Redundant_Semiskilled(6)
+     
+      - 200*Redundant_Unskilled(0) - 200*Redundant_Unskilled(1) - 200*Redundant_Unskilled(2) - 200*Redundant_Unskilled(3) - 200*Redundant_Unskilled(4) - 200*Redundant_Unskilled(5) - 200*Redundant_Unskilled(6) - 500*Overmanned_Skilled(0)
+     
+      - 500*Overmanned_Skilled(1) - 500*Overmanned_Skilled(2) - 500*Overmanned_Skilled(3) - 500*Overmanned_Skilled(4) - 500*Overmanned_Skilled(5) - 500*Overmanned_Skilled(6) - 800*Overmanned_Semiskilled(0) - 800*Overmanned_Semiskilled(1)
+     
+      - 800*Overmanned_Semiskilled(2) - 800*Overmanned_Semiskilled(3) - 800*Overmanned_Semiskilled(4) - 800*Overmanned_Semiskilled(5) - 800*Overmanned_Semiskilled(6) - 500*Overmanned_Unskilled(0) - 500*Overmanned_Unskilled(1) - 500*Overmanned_Unskilled(2)
+     
+      - 500*Overmanned_Unskilled(3) - 500*Overmanned_Unskilled(4) - 500*Overmanned_Unskilled(5) - 500*Overmanned_Unskilled(6) - 400*Short_term_Skilled(0) - 400*Short_term_Skilled(1) - 400*Short_term_Skilled(2) - 400*Short_term_Skilled(3)
+     
+      - 400*Short_term_Skilled(4) - 400*Short_term_Skilled(5) - 400*Short_term_Skilled(6) - 400*Short_term_Semiskilled(0) - 400*Short_term_Semiskilled(1) - 400*Short_term_Semiskilled(2) - 400*Short_term_Semiskilled(3) - 400*Short_term_Semiskilled(4)
+     
+      - 400*Short_term_Semiskilled(5) - 400*Short_term_Semiskilled(6) - 500*Short_term_Unskilled(0) - 500*Short_term_Unskilled(1) - 500*Short_term_Unskilled(2) - 500*Short_term_Unskilled(3) - 500*Short_term_Unskilled(4) - 500*Short_term_Unskilled(5)
+     
+      - 500*Short_term_Unskilled(6) + z =E= 0 ; (LHS = 0)
+     
+
+---- recruitementskilled  =L=  
+
+recruitementskilled(0)..  Recruited_Skilled_workers(0) =L= 500 ; (LHS = 0)
+     
+recruitementskilled(1)..  Recruited_Skilled_workers(1) =L= 500 ; (LHS = 0)
+     
+recruitementskilled(2)..  Recruited_Skilled_workers(2) =L= 500 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- recruitementsemiskilled  =L=  
+
+recruitementsemiskilled(0)..  Recruited_Semiskilled_workers(0) =L= 800 ; (LHS = 0)
+     
+recruitementsemiskilled(1)..  Recruited_Semiskilled_workers(1) =L= 800 ; (LHS = 0)
+     
+recruitementsemiskilled(2)..  Recruited_Semiskilled_workers(2) =L= 800 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- recruitementunskilled  =L=  
+
+recruitementunskilled(0)..  Recruited_Unskilled_workers(0) =L= 500 ; (LHS = 0)
+     
+recruitementunskilled(1)..  Recruited_Unskilled_workers(1) =L= 500 ; (LHS = 0)
+     
+recruitementunskilled(2)..  Recruited_Unskilled_workers(2) =L= 500 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- retrainedfromunskilled  =L=  
+
+retrainedfromunskilled(0)..  Retrained_Unskilled_workers(0) =L= 200 ; (LHS = 0)
+     
+retrainedfromunskilled(1)..  Retrained_Unskilled_workers(1) =L= 200 ; (LHS = 0)
+     
+retrainedfromunskilled(2)..  Retrained_Unskilled_workers(2) =L= 200 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- retrainedfromsemiskilled  =L=  
+
+retrainedfromsemiskilled(0)..  - 0.25*Skilled_workers(0) + Retrained_Semiskilled_workers(0) =L= 0 ; (LHS = 0)
+     
+retrainedfromsemiskilled(1)..  - 0.25*Skilled_workers(1) + Retrained_Semiskilled_workers(1) =L= 0 ; (LHS = 0)
+     
+retrainedfromsemiskilled(2)..  - 0.25*Skilled_workers(2) + Retrained_Semiskilled_workers(2) =L= 0 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- overmanned  =L=  
+
+overmanned(0)..  Overmanned_Skilled(0) + Overmanned_Semiskilled(0) + Overmanned_Unskilled(0) =L= 150 ; (LHS = 0)
+     
+overmanned(1)..  Overmanned_Skilled(1) + Overmanned_Semiskilled(1) + Overmanned_Unskilled(1) =L= 150 ; (LHS = 0)
+     
+overmanned(2)..  Overmanned_Skilled(2) + Overmanned_Semiskilled(2) + Overmanned_Unskilled(2) =L= 150 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- shortermunskilled  =L=  
+
+shortermunskilled(0)..  Short_term_Unskilled(0) =L= 50 ; (LHS = 0)
+     
+shortermunskilled(1)..  Short_term_Unskilled(1) =L= 50 ; (LHS = 0)
+     
+shortermunskilled(2)..  Short_term_Unskilled(2) =L= 50 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- shortermsemiskilled  =L=  
+
+shortermsemiskilled(0)..  Short_term_Semiskilled(0) =L= 50 ; (LHS = 0)
+     
+shortermsemiskilled(1)..  Short_term_Semiskilled(1) =L= 50 ; (LHS = 0)
+     
+shortermsemiskilled(2)..  Short_term_Semiskilled(2) =L= 50 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- shortermskilled  =L=  
+
+shortermskilled(0)..  Short_term_Skilled(0) =L= 50 ; (LHS = 0)
+     
+shortermskilled(1)..  Short_term_Skilled(1) =L= 50 ; (LHS = 0)
+     
+shortermskilled(2)..  Short_term_Skilled(2) =L= 50 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- skilled  =E=  
+
+skilled(0)..  Skilled_workers(0) - 0.9*Recruited_Skilled_workers(0) - 0.95*Retrained_Semiskilled_workers(0) + Dg_Semiskilled_from_Skilled(0) + Dg_Unskilled_from_Skilled(0) + Redundant_Skilled(0) =E= 0 ; (LHS = 0)
+     
+skilled(1)..  - 0.95*Skilled_workers(0) + Skilled_workers(1) - 0.9*Recruited_Skilled_workers(1) - 0.95*Retrained_Semiskilled_workers(1) + Dg_Semiskilled_from_Skilled(1) + Dg_Unskilled_from_Skilled(1) + Redundant_Skilled(1) =E= 0 ; (LHS = 0)
+     
+skilled(2)..  - 0.95*Skilled_workers(1) + Skilled_workers(2) - 0.9*Recruited_Skilled_workers(2) - 0.95*Retrained_Semiskilled_workers(2) + Dg_Semiskilled_from_Skilled(2) + Dg_Unskilled_from_Skilled(2) + Redundant_Skilled(2) =E= 0 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- requiredskilled  =E=  
+
+requiredskilled(0)..  Skilled_workers(0) - Overmanned_Skilled(0) + 0.5*Short_term_Skilled(0) =E= 1000 ; (LHS = 0, INFES = 1000 ****)
+     
+requiredskilled(1)..  Skilled_workers(1) - Overmanned_Skilled(1) + 0.5*Short_term_Skilled(1) =E= 1000 ; (LHS = 0, INFES = 1000 ****)
+     
+requiredskilled(2)..  Skilled_workers(2) - Overmanned_Skilled(2) + 0.5*Short_term_Skilled(2) =E= 1500 ; (LHS = 0, INFES = 1500 ****)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- semiskllied  =E=  
+
+semiskllied(0)..  Semiskilled_workers(0) - 0.8*Recruited_Semiskilled_workers(0) - 0.95*Retrained_Unskilled_workers(0) - 0.5*Dg_Semiskilled_from_Skilled(0) + Dg_Unskilled_from_Semiskilled(0) + Redundant_Semiskilled(0) =E= 0 ; (LHS = 0)
+     
+semiskllied(1)..  - 0.95*Semiskilled_workers(0) + Semiskilled_workers(1) - 0.8*Recruited_Semiskilled_workers(1) - 0.95*Retrained_Unskilled_workers(1) - 0.5*Dg_Semiskilled_from_Skilled(1) + Dg_Unskilled_from_Semiskilled(1) + Redundant_Semiskilled(1) =E= 0
+      ; (LHS = 0)
+     
+semiskllied(2)..  - 0.95*Semiskilled_workers(1) + Semiskilled_workers(2) - 0.8*Recruited_Semiskilled_workers(2) - 0.95*Retrained_Unskilled_workers(2) - 0.5*Dg_Semiskilled_from_Skilled(2) + Dg_Unskilled_from_Semiskilled(2) + Redundant_Semiskilled(2) =E= 0
+      ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- requiredsemiskilled  =E=  
+
+requiredsemiskilled(0)..  Semiskilled_workers(0) - Overmanned_Semiskilled(0) + 0.5*Short_term_Semiskilled(0) =E= 1500 ; (LHS = 0, INFES = 1500 ****)
+     
+requiredsemiskilled(1)..  Semiskilled_workers(1) - Overmanned_Semiskilled(1) + 0.5*Short_term_Semiskilled(1) =E= 1400 ; (LHS = 0, INFES = 1400 ****)
+     
+requiredsemiskilled(2)..  Semiskilled_workers(2) - Overmanned_Semiskilled(2) + 0.5*Short_term_Semiskilled(2) =E= 2000 ; (LHS = 0, INFES = 2000 ****)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- unskilled  =E=  
+
+unskilled(0)..  Unskilled_workers(0) - 0.75*Recruited_Unskilled_workers(0) - 0.5*Dg_Unskilled_from_Skilled(0) - 0.5*Dg_Unskilled_from_Semiskilled(0) + Redundant_Unskilled(0) =E= 0 ; (LHS = 0)
+     
+unskilled(1)..  - 0.9*Unskilled_workers(0) + Unskilled_workers(1) - 0.75*Recruited_Unskilled_workers(1) - 0.5*Dg_Unskilled_from_Skilled(1) - 0.5*Dg_Unskilled_from_Semiskilled(1) + Redundant_Unskilled(1) =E= 0 ; (LHS = 0)
+     
+unskilled(2)..  - 0.9*Unskilled_workers(1) + Unskilled_workers(2) - 0.75*Recruited_Unskilled_workers(2) - 0.5*Dg_Unskilled_from_Skilled(2) - 0.5*Dg_Unskilled_from_Semiskilled(2) + Redundant_Unskilled(2) =E= 0 ; (LHS = 0)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+
+---- requiredunskilled  =E=  
+
+requiredunskilled(0)..  Unskilled_workers(0) - Overmanned_Unskilled(0) + 0.5*Short_term_Unskilled(0) =E= 2000 ; (LHS = 0, INFES = 2000 ****)
+     
+requiredunskilled(1)..  Unskilled_workers(1) - Overmanned_Unskilled(1) + 0.5*Short_term_Unskilled(1) =E= 1000 ; (LHS = 0, INFES = 1000 ****)
+     
+requiredunskilled(2)..  Unskilled_workers(2) - Overmanned_Unskilled(2) + 0.5*Short_term_Unskilled(2) =E= 500 ; (LHS = 0, INFES = 500 ****)
+     
+REMAINING 4 ENTRIES SKIPPED
+
+GAMS 25.1.1  r66732 Released May 19, 2018 DEX-DEG x86 64bit/Mac OS X - 10/07/18 22:21:45 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Column Listing      SOLVE ProjectQ1 Using LP From line 99
+
+
+---- Skilled_workers  
+
+Skilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -0.25    retrainedfromsemiskilled(0)
+        1       skilled(0)
+       -0.95    skilled(1)
+        1       requiredskilled(0)
+
+Skilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -0.25    retrainedfromsemiskilled(1)
+        1       skilled(1)
+       -0.95    skilled(2)
+        1       requiredskilled(1)
+
+Skilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       -0.25    retrainedfromsemiskilled(2)
+        1       skilled(2)
+       -0.95    skilled(3)
+        1       requiredskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Semiskilled_workers  
+
+Semiskilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       semiskllied(0)
+       -0.95    semiskllied(1)
+        1       requiredsemiskilled(0)
+
+Semiskilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       semiskllied(1)
+       -0.95    semiskllied(2)
+        1       requiredsemiskilled(1)
+
+Semiskilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       semiskllied(2)
+       -0.95    semiskllied(3)
+        1       requiredsemiskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Unskilled_workers  
+
+Unskilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       unskilled(0)
+       -0.9     unskilled(1)
+        1       requiredunskilled(0)
+
+Unskilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       unskilled(1)
+       -0.9     unskilled(2)
+        1       requiredunskilled(1)
+
+Unskilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       unskilled(2)
+       -0.9     unskilled(3)
+        1       requiredunskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Recruited_Skilled_workers  
+
+Recruited_Skilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementskilled(0)
+       -0.9     skilled(0)
+
+Recruited_Skilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementskilled(1)
+       -0.9     skilled(1)
+
+Recruited_Skilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementskilled(2)
+       -0.9     skilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Recruited_Semiskilled_workers  
+
+Recruited_Semiskilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementsemiskilled(0)
+       -0.8     semiskllied(0)
+
+Recruited_Semiskilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementsemiskilled(1)
+       -0.8     semiskllied(1)
+
+Recruited_Semiskilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementsemiskilled(2)
+       -0.8     semiskllied(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Recruited_Unskilled_workers  
+
+Recruited_Unskilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementunskilled(0)
+       -0.75    unskilled(0)
+
+Recruited_Unskilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementunskilled(1)
+       -0.75    unskilled(1)
+
+Recruited_Unskilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       recruitementunskilled(2)
+       -0.75    unskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Retrained_Semiskilled_workers  
+
+Retrained_Semiskilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       retrainedfromsemiskilled(0)
+       -0.95    skilled(0)
+
+Retrained_Semiskilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       retrainedfromsemiskilled(1)
+       -0.95    skilled(1)
+
+Retrained_Semiskilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       retrainedfromsemiskilled(2)
+       -0.95    skilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Retrained_Unskilled_workers  
+
+Retrained_Unskilled_workers(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       retrainedfromunskilled(0)
+       -0.95    semiskllied(0)
+
+Retrained_Unskilled_workers(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       retrainedfromunskilled(1)
+       -0.95    semiskllied(1)
+
+Retrained_Unskilled_workers(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       retrainedfromunskilled(2)
+       -0.95    semiskllied(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Dg_Semiskilled_from_Skilled  
+
+Dg_Semiskilled_from_Skilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       skilled(0)
+       -0.5     semiskllied(0)
+
+Dg_Semiskilled_from_Skilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       skilled(1)
+       -0.5     semiskllied(1)
+
+Dg_Semiskilled_from_Skilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       skilled(2)
+       -0.5     semiskllied(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Dg_Unskilled_from_Skilled  
+
+Dg_Unskilled_from_Skilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       skilled(0)
+       -0.5     unskilled(0)
+
+Dg_Unskilled_from_Skilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       skilled(1)
+       -0.5     unskilled(1)
+
+Dg_Unskilled_from_Skilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       skilled(2)
+       -0.5     unskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Dg_Unskilled_from_Semiskilled  
+
+Dg_Unskilled_from_Semiskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       semiskllied(0)
+       -0.5     unskilled(0)
+
+Dg_Unskilled_from_Semiskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       semiskllied(1)
+       -0.5     unskilled(1)
+
+Dg_Unskilled_from_Semiskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+        1       semiskllied(2)
+       -0.5     unskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Redundant_Skilled  
+
+Redundant_Skilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       skilled(0)
+
+Redundant_Skilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       skilled(1)
+
+Redundant_Skilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       skilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Redundant_Semiskilled  
+
+Redundant_Semiskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       semiskllied(0)
+
+Redundant_Semiskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       semiskllied(1)
+
+Redundant_Semiskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       semiskllied(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Redundant_Unskilled  
+
+Redundant_Unskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -200       obj
+        1       unskilled(0)
+
+Redundant_Unskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -200       obj
+        1       unskilled(1)
+
+Redundant_Unskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -200       obj
+        1       unskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Overmanned_Skilled  
+
+Overmanned_Skilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       overmanned(0)
+       -1       requiredskilled(0)
+
+Overmanned_Skilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       overmanned(1)
+       -1       requiredskilled(1)
+
+Overmanned_Skilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       overmanned(2)
+       -1       requiredskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Overmanned_Semiskilled  
+
+Overmanned_Semiskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -800       obj
+        1       overmanned(0)
+       -1       requiredsemiskilled(0)
+
+Overmanned_Semiskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -800       obj
+        1       overmanned(1)
+       -1       requiredsemiskilled(1)
+
+Overmanned_Semiskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -800       obj
+        1       overmanned(2)
+       -1       requiredsemiskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Overmanned_Unskilled  
+
+Overmanned_Unskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       overmanned(0)
+       -1       requiredunskilled(0)
+
+Overmanned_Unskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       overmanned(1)
+       -1       requiredunskilled(1)
+
+Overmanned_Unskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       overmanned(2)
+       -1       requiredunskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Short_term_Skilled  
+
+Short_term_Skilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       shortermskilled(0)
+        0.5     requiredskilled(0)
+
+Short_term_Skilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       shortermskilled(1)
+        0.5     requiredskilled(1)
+
+Short_term_Skilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       shortermskilled(2)
+        0.5     requiredskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Short_term_Semiskilled  
+
+Short_term_Semiskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       shortermsemiskilled(0)
+        0.5     requiredsemiskilled(0)
+
+Short_term_Semiskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       shortermsemiskilled(1)
+        0.5     requiredsemiskilled(1)
+
+Short_term_Semiskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -400       obj
+        1       shortermsemiskilled(2)
+        0.5     requiredsemiskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- Short_term_Unskilled  number
+
+Short_term_Unskilled(0)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       shortermunskilled(0)
+        0.5     requiredunskilled(0)
+
+Short_term_Unskilled(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       shortermunskilled(1)
+        0.5     requiredunskilled(1)
+
+Short_term_Unskilled(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+     -500       obj
+        1       shortermunskilled(2)
+        0.5     requiredunskilled(2)
+
+REMAINING 4 ENTRIES SKIPPED
+
+---- z  No.of reduntant labors
+
+z
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+        1       obj
+
+GAMS 25.1.1  r66732 Released May 19, 2018 DEX-DEG x86 64bit/Mac OS X - 10/07/18 22:21:45 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Model Statistics    SOLVE ProjectQ1 Using LP From line 99
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS          16     SINGLE EQUATIONS          106
+BLOCKS OF VARIABLES          21     SINGLE VARIABLES          141
+NON ZERO ELEMENTS           362
+
+
+GENERATION TIME      =        0.007 SECONDS      4 MB  25.1.1 r66732 DEX-DEG
+
+
+EXECUTION TIME       =        0.007 SECONDS      4 MB  25.1.1 r66732 DEX-DEG
+GAMS 25.1.1  r66732 Released May 19, 2018 DEX-DEG x86 64bit/Mac OS X - 10/07/18 22:21:45 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Solution Report     SOLVE ProjectQ1 Using LP From line 99
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   ProjectQ1           OBJECTIVE  z
+     TYPE    LP                  DIRECTION  MINIMIZE
+     SOLVER  CPLEX               FROM LINE  99
+
+**** SOLVER STATUS     1 Normal Completion         
+**** MODEL STATUS      4 Infeasible                
+**** OBJECTIVE VALUE             3121.1623
+
+ RESOURCE USAGE, LIMIT          0.008      1000.000
+ ITERATION COUNT, LIMIT        13    2000000000
+
+IBM ILOG CPLEX   25.1.1 r66732 Released May 19, 2018 DEG x86 64bit/Mac OS X   
+Cplex 12.8.0.0
+
+Space for names approximately 0.01 Mb
+Use option 'names no' to turn use of names off
+LP status(3): infeasible
+Cplex Time: 0.00sec (det. 0.07 ticks)
+Rerunning with presolve turned off and solving with LPMETHOD=0
+LP status(3): infeasible
+Cplex Time: 0.00sec (det. 0.08 ticks)
+Model has been proven infeasible.
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- EQU obj                 .              .              .             1.0000      
+
+  obj  objective function
+
+---- EQU recruitementskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF          500.0000       500.0000        -0.9474      
+1        -INF           81.9444       500.0000          .          
+2        -INF          500.0000       500.0000         EPS         
+3        -INF          500.0000       500.0000         EPS         
+4        -INF          155.5556       500.0000          .          
+5        -INF          158.6667       500.0000          .          
+6        -INF          161.8400       500.0000          .          
+
+---- EQU recruitementsemiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF          800.0000       800.0000        -0.8421      
+1        -INF             .           800.0000          .          
+2        -INF          800.0000       800.0000         EPS         
+3        -INF          750.0000       800.0000          .          
+4        -INF          218.7500       800.0000          .          
+5        -INF          223.1250       800.0000          .          
+6        -INF          227.5875       800.0000          .          
+
+---- EQU recruitementunskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF         2633.3333       500.0000        -1.0000 INFES
+1        -INF             .           500.0000          .          
+2        -INF             .           500.0000          .          
+3        -INF             .           500.0000          .          
+4        -INF             .           500.0000          .          
+5        -INF             .           500.0000          .          
+6        -INF             .           500.0000          .          
+
+---- EQU retrainedfromunskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF          878.9474       200.0000        -1.0000 INFES
+1        -INF             .           200.0000          .          
+2        -INF           30.3289       200.0000          .          
+3        -INF             .           200.0000          .          
+4        -INF             .           200.0000          .          
+5        -INF             .           200.0000          .          
+6        -INF             .           200.0000          .          
+
+---- EQU retrainedfromsemiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF          308.8816          .            -1.0000 INFES
+1        -INF         -250.0000          .              .          
+2        -INF         -269.7368          .              .          
+3        -INF         -368.4211          .              .          
+4        -INF         -510.0000          .              .          
+5        -INF         -520.2000          .              .          
+6        -INF         -530.6040          .              .          
+
+---- EQU overmanned  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF             .           150.0000          .          
+1        -INF            1.2500       150.0000          .          
+2        -INF             .           150.0000          .          
+3        -INF             .           150.0000          .          
+4        -INF             .           150.0000          .          
+5        -INF             .           150.0000          .          
+6        -INF             .           150.0000          .          
+
+---- EQU shortermunskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF           50.0000        50.0000        -0.6667      
+1        -INF             .            50.0000          .          
+2        -INF             .            50.0000          .          
+3        -INF             .            50.0000          .          
+4        -INF             .            50.0000          .          
+5        -INF             .            50.0000          .          
+6        -INF             .            50.0000          .          
+
+---- EQU shortermsemiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF           50.0000        50.0000        -0.5263      
+1        -INF             .            50.0000          .          
+2        -INF             .            50.0000          .          
+3        -INF             .            50.0000          .          
+4        -INF             .            50.0000          .          
+5        -INF             .            50.0000          .          
+6        -INF             .            50.0000          .          
+
+---- EQU shortermskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0        -INF           50.0000        50.0000        -0.4013      
+1        -INF             .            50.0000          .          
+2        -INF             .            50.0000          .          
+3        -INF             .            50.0000          .          
+4        -INF             .            50.0000          .          
+5        -INF             .            50.0000          .          
+6        -INF             .            50.0000          .          
+
+---- EQU skilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .              .            -1.0526      
+1          .              .              .             EPS         
+2          .              .              .             EPS         
+3          .              .              .             EPS         
+4          .              .              .             EPS         
+5          .              .              .             EPS         
+6          .              .              .             EPS         
+
+---- EQU requiredskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0      1000.0000      1000.0000      1000.0000         0.8026      
+1      1000.0000      1000.0000      1000.0000         EPS         
+2      1500.0000      1500.0000      1500.0000         EPS         
+3      2000.0000      2000.0000      2000.0000         EPS         
+4      2040.0000      2040.0000      2040.0000         EPS         
+5      2080.8000      2080.8000      2080.8000         EPS         
+6      2122.4160      2122.4160      2122.4160         EPS         
+
+---- EQU semiskllied  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .              .            -1.0526      
+1          .              .              .             EPS         
+2          .              .              .             EPS         
+3          .              .              .             EPS         
+4          .              .              .             EPS         
+5          .              .              .             EPS         
+6          .              .              .             EPS         
+
+---- EQU requiredsemiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0      1500.0000      1500.0000      1500.0000         1.0526      
+1      1400.0000      1400.0000      1400.0000         EPS         
+2      2000.0000      2000.0000      2000.0000         EPS         
+3      2500.0000      2500.0000      2500.0000         EPS         
+4      2550.0000      2550.0000      2550.0000         EPS         
+5      2601.0000      2601.0000      2601.0000         EPS         
+6      2653.0200      2653.0200      2653.0200         EPS         
+
+---- EQU unskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .              .            -1.3333      
+1          .              .              .             EPS         
+2          .              .              .             EPS         
+3          .              .              .             EPS         
+4          .              .              .             EPS         
+5          .              .              .             EPS         
+6          .              .              .             EPS         
+
+---- EQU requiredunskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0      2000.0000      2000.0000      2000.0000         1.3333      
+1      1000.0000      1000.0000      1000.0000         EPS         
+2       500.0000       500.0000       500.0000         EPS         
+3          .              .              .             EPS         
+4          .              .              .             EPS         
+5          .              .              .             EPS         
+6          .              .              .             EPS         
+
+---- VAR Skilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .           975.0000        +INF             .          
+1          .          1000.0000        +INF             .          
+2          .          1500.0000        +INF             .          
+3          .          2000.0000        +INF             .          
+4          .          2040.0000        +INF             .          
+5          .          2080.8000        +INF             .          
+6          .          2122.4160        +INF             .          
+
+---- VAR Semiskilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .          1475.0000        +INF             .          
+1          .          1401.2500        +INF             .          
+2          .          2000.0000        +INF             .          
+3          .          2500.0000        +INF             .          
+4          .          2550.0000        +INF             .          
+5          .          2601.0000        +INF             .          
+6          .          2653.0200        +INF             .          
+
+---- VAR Unskilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .          1975.0000        +INF             .          
+1          .          1000.0000        +INF             .          
+2          .           500.0000        +INF             .          
+3          .              .            +INF             .          
+4          .              .            +INF             .          
+5          .              .            +INF             .          
+6          .              .            +INF             .          
+
+---- VAR Recruited_Skilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .           500.0000        +INF             .          
+1          .            81.9444        +INF             .          
+2          .           500.0000        +INF             .          
+3          .           500.0000        +INF             .          
+4          .           155.5556        +INF             .          
+5          .           158.6667        +INF             .          
+6          .           161.8400        +INF             .          
+
+---- VAR Recruited_Semiskilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .           800.0000        +INF             .          
+1          .              .            +INF            EPS         
+2          .           800.0000        +INF             .          
+3          .           750.0000        +INF             .          
+4          .           218.7500        +INF             .          
+5          .           223.1250        +INF             .          
+6          .           227.5875        +INF             .          
+
+---- VAR Recruited_Unskilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .          2633.3333        +INF             .          
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF             .          
+5          .              .            +INF             .          
+6          .              .            +INF             .          
+
+---- VAR Retrained_Semiskilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .           552.6316        +INF             .          
+1          .              .            +INF            EPS         
+2          .           105.2632        +INF             .          
+3          .           131.5789        +INF             .          
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Retrained_Unskilled_workers  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .           878.9474        +INF             .          
+1          .              .            +INF            EPS         
+2          .            30.3289        +INF             .          
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Dg_Semiskilled_from_Skilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            0.5263      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Dg_Unskilled_from_Skilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            0.3860      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Dg_Unskilled_from_Semiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            0.3860      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Redundant_Skilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            1.0526      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Redundant_Semiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            1.0526      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Redundant_Unskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            1.3333      
+1          .           777.5000        +INF             .          
+2          .           400.0000        +INF             .          
+3          .           450.0000        +INF             .          
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Overmanned_Skilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            0.8026      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Overmanned_Semiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            1.0526      
+1          .             1.2500        +INF             .          
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Overmanned_Unskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .              .            +INF            1.3333      
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Short_term_Skilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .            50.0000        +INF             .          
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Short_term_Semiskilled  
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .            50.0000        +INF             .          
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+---- VAR Short_term_Unskilled  number
+
+         LOWER          LEVEL          UPPER         MARGINAL
+
+0          .            50.0000        +INF             .          
+1          .              .            +INF            EPS         
+2          .              .            +INF            EPS         
+3          .              .            +INF            EPS         
+4          .              .            +INF            EPS         
+5          .              .            +INF            EPS         
+6          .              .            +INF            EPS         
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- VAR z                 -INF         3121.1623        +INF             .          
+
+  z  No.of reduntant labors
+
+
+**** REPORT SUMMARY :        0     NONOPT
+                             3 INFEASIBLE (INFES)
+                    SUM       3121.1623
+                    MAX       2133.3333
+                    MEAN      1040.3874
+                             0  UNBOUNDED
+GAMS 25.1.1  r66732 Released May 19, 2018 DEX-DEG x86 64bit/Mac OS X - 10/07/18 22:21:45 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+----    101 VARIABLE z.L                   =     3121.162  No.of reduntant labors
+
+----    101 VARIABLE Skilled_workers.L  
+
+0  975.000,    1 1000.000,    2 1500.000,    3 2000.000,    4 2040.000,    5 2080.800,    6 2122.416
+
+
+----    101 VARIABLE Semiskilled_workers.L  
+
+0 1475.000,    1 1401.250,    2 2000.000,    3 2500.000,    4 2550.000,    5 2601.000,    6 2653.020
+
+
+----    101 VARIABLE Unskilled_workers.L  
+
+0 1975.000,    1 1000.000,    2  500.000
+
+
+----    101 VARIABLE Recruited_Skilled_workers.L  
+
+0 500.000,    1  81.944,    2 500.000,    3 500.000,    4 155.556,    5 158.667,    6 161.840
+
+
+----    101 VARIABLE Recruited_Semiskilled_workers.L  
+
+0 800.000,    2 800.000,    3 750.000,    4 218.750,    5 223.125,    6 227.588
+
+
+----    101 VARIABLE Recruited_Unskilled_workers.L  
+
+0 2633.333
+
+
+----    101 VARIABLE Retrained_Semiskilled_workers.L  
+
+0 552.632,    2 105.263,    3 131.579
+
+
+----    101 VARIABLE Retrained_Unskilled_workers.L  
+
+0 878.947,    2  30.329
+
+
+----    101 VARIABLE Dg_Semiskilled_from_Skilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Dg_Unskilled_from_Skilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Dg_Unskilled_from_Semiskilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Redundant_Skilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Redundant_Semiskilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Redundant_Unskilled.L  
+
+1 777.500,    2 400.000,    3 450.000
+
+
+----    101 VARIABLE Overmanned_Skilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Overmanned_Semiskilled.L  
+
+1 1.250
+
+
+----    101 VARIABLE Overmanned_Unskilled.L  
+
+                      ( ALL       0.000 )
+
+
+----    101 VARIABLE Short_term_Skilled.L  
+
+0 50.000
+
+
+----    101 VARIABLE Short_term_Semiskilled.L  
+
+0 50.000
+
+
+----    101 VARIABLE Short_term_Unskilled.L  number
+
+0 50.000
+
+
+
+EXECUTION TIME       =        0.003 SECONDS      3 MB  25.1.1 r66732 DEX-DEG
+
+
+USER: GAMS Development Corporation, USA              G871201/0000CA-ANY
+      Free Demo, +1 202-342-0180, support@gams.com, www.gams.com DC0000
+
+
+**** FILE SUMMARY
+
+Input      /Users/swapnilvermani/Downloads/ProjectQ6.gms
+Output     /Users/swapnilvermani/Downloads/ProjectQ6.lst
